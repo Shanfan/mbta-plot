@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>MBTA Test Polot</title>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
+        <style>
+            body {
+                font-family: sans-serif;
+                font-size: 14px;
+            }
+            svg {
+                border: 1px solid #666;
+                background-color: white;
+                padding: 50px;
+            }
+            .dot {
+                fill: #000;
+                opacity: 0.65;
+                cursor: pointer;
+            }
+            .num {
+                font-size: 10px;
+                font-family: verdana, sans-serif;
+                fill: white;
+            }
+            .tooltip {
+              position: absolute;
+              pointer-events: none;
+              padding: 10px;
+              border: 1px solid #ddd;
+              background: white;
+              color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+        var w = 800,
+            h = 700,
+            data, 
+            route=[];
+
+        var svg = d3.select("body").append("svg")
+                    .attr({
+                        "width": w,
+                        "height": h
+                    });
+
+        var tooltip = d3.select("body").append("div")
+                        .attr("class", "tooltip")
+                        .style("opacity", 0);
+
+        d3.json('stopsbyroute66.json', function(error, json) {
+            if (error) return console.warn(error);
+            
+            data = json,
+            route = [],
+            lats = [],
+            lons = [];
+
+            var outbound_stops = data.direction[1].stop;
+
+            outbound_stops.forEach(function(stop){
+                lats.push(+stop.stop_lat);
+                lons.push(+stop.stop_lon);
+                route.push({ name: stop.stop_name,
+                             order: stop.stop_order,
+                             location: [+stop.stop_lat, +stop.stop_lon]
+                            });
+            });
+
+            var xScale = d3.scale.linear()
+                            .domain([Math.min(...lats), Math.max(...lats)])
+                            .rangeRound([0, w]),
+                
+                yScale = d3.scale.linear()
+                            .domain([Math.min(...lons), Math.max(...lons)])
+                            .rangeRound([h, 0]);
+
+            svg.selectAll(".dot")
+                .data(route)
+            .enter().append("circle")
+                .attr("class", "dot")
+                .attr("r", 20)
+                .attr("cx", function(d){ return xScale(d.location[0]); })
+                .attr("cy", function(d){ return yScale(d.location[1]); })
+                      .on("mouseover", function(d) {
+                          tooltip.transition()
+                               .duration(200)
+                               .style("opacity", 1);
+                          tooltip.html(d.name)
+                               .style("left", (d3.event.pageX + 5) + "px")
+                               .style("top", (d3.event.pageY - 28) + "px");
+                      })
+                      .on("mouseout", function(d) {
+                          tooltip.transition()
+                               .duration(500)
+                               .style("opacity", 0);
+                      });
+
+            svg.selectAll(".num")
+                .data(route)
+            .enter().append("text")
+                .attr("class", "num")
+                .attr("x", function(d){ return xScale(d.location[0]); })
+                .attr("y", function(d){ return yScale(d.location[1]); })
+                .text( function(d) { return d.order; })
+                .attr({"text-anchor": "middle",
+                       "alignment-baseline": "middle" })
+
+
+            console.log(route, lons, lats);
+        });
+
+        </script>
+    </body>
+</html>
